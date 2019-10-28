@@ -1,0 +1,14 @@
+{
+  "name": "associations",
+  "version": "1.0.0",
+  "description": "this package will be used to teach  the Data Associations chapter in the web d course",
+  "main": "embed.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "sj78625",
+  "license": "ISC",
+  "dependencies": {
+    "mongoose": "^5.7.7"
+  }
+}

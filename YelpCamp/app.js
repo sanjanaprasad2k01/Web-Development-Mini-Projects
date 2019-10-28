@@ -1,32 +1,26 @@
-var express = require('express');
-var app = express();
-var bodyParser = require('body-parser');
-var mongoose = require('mongoose');
-
+var express 	= require('express'),
+	 app 		= express(),
+	 bodyParser	= require('body-parser'),
+	 mongoose	= require('mongoose'),
+	 Campground = require("./models/campgrounds");
+	 Comment 	= require("./models/comments");
+	 seedDB		= require("./seeds");
 
 mongoose.set('useUnifiedTopology', true); //to remove the deprecation in new mongoose version
 mongoose.connect("mongodb://localhost:27017/yelp_camp",{useNewUrlParser:true});
 
 app.set("view engine","ejs");
 app.use(bodyParser.urlencoded({extended:true}));
+app.use(express.static(__dirname+"/public"));
 
 
-
-//set schema 
-var campgroundSchema = new mongoose.Schema({
-	name:String,
-	image:String,
-	description:String
-});
-
-//set model
-var Campground=mongoose.model("Campground",campgroundSchema);
+//call to seed function
+seedDB();
 
 
-
-
-
-//routes
+//===================================================
+//CAMPGROUNDS ROUTES
+//===================================================
 app.get("/",function(req,res){
 	res.render("landing");
 });
@@ -38,7 +32,7 @@ app.get("/campgrounds",function(req,res){
 		if(error)
 			console.log(error);
 		else{
-			res.render("index",{campgrounds:allCamps});
+			res.render("campgrounds/index",{campgrounds:allCamps});
 		}
 	});
 
@@ -66,30 +60,68 @@ app.post("/campgrounds",function(req,res){
 
 
 app.get("/campgrounds/new",function(req,res){
-	res.render("new");
+	res.render("campgrounds/new");
 });
 
-app.get("/campgrounds/:id",function(req,res){
+app.get("/campgrounds/:id", function(req, res){
+    //find the campground with provided ID
+    Campground.findById(req.params.id).populate("comments").exec(function(error, foundCampground){
+        if(error){
+            console.log(error);
+        } else {
+            console.log(foundCampground)
+            //render show template with that campground
+            res.render("campgrounds/show", {campgrounds: foundCampground});
+        }
+    });
+})
 
+//===================================================
+//COMMENTS ROUTES
+//===================================================
+
+//Comment NEW Route
+app.get("/campgrounds/:id/comments/new",function(req,res){
 	
-	Campground.findById(req.params.id,function(error,idCamp){
-		if (error) {
+	Campground.findById(req.params.id,function(error,campground){
+		res.render("comments/new",{campground:campground});
+	});
+});
+
+
+//Comment CREATE Route
+app.post("/campgrounds/:id/comments",function(req,res){
+	//lookup campground using ID
+	Campground.findById(req.params.id,function(error,campground){
+		if(error){
 			console.log(error);
-		}
-		else{
-			res.render("show",{campgrounds:idCamp});
+		}else{
+			//create a new comment
+			Comment.create(req.body.comment,function(error,comment){
+				if(error){
+					console.log(error);
+				}else{
+					//connect new comment to campground
+					campground.comments.push(comment);
+					campground.save();
+					
+					//redirect to campground show page
+					res.redirect("/campgrounds/"+req.params.id);
+				}
+			})
 		}
 	});
-
-
-
-
-	//res.send("This will be our show page one day");
-	
 });
 
 
-//listeners
+
+
+
+
+//===================================================
+//LISTENERS
+//===================================================
+
 app.listen(3000,function(req,res){
 	console.log("Yelp Camp Server is up and running.!!!!");
 });
